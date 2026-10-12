@@ -1,0 +1,4 @@
+administer security advisory alert:
+  title: 'Administer security advisory alerts'
+  description: 'Change alert recipients and severities, and run the audit on demand.'
+  restrict access: true

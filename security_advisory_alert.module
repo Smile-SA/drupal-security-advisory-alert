@@ -1,0 +1,66 @@
+<?php
+
+/**
+ * @file
+ * Checks installed packages for security advisories and emails an alert.
+ */
+
+/**
+ * Implements hook_cron().
+ */
+function security_advisory_alert_cron(): void {
+  // Nobody to alert (e.g. recipients emptied in settings.php on an
+  // environment): skip the check. "Run audit now" still runs it on demand.
+  $recipients = \Drupal::config('security_advisory_alert.settings')->get('recipients');
+  if (trim((string) $recipients) === '') {
+    return;
+  }
+
+  // Once a day: ultimate_cron schedules it (config/optional/ultimate_cron.job.
+  // security_advisory_alert_cron.yml); without ultimate_cron, core cron calls
+  // this on every run, so skip if any site of the codebase checked < 20 h ago.
+  $checker = \Drupal::service('security_advisory_alert.checker');
+  if (\Drupal::time()->getRequestTime() - ($checker->getLastResult()['time'] ?? 0) < 20 * 3600) {
+    return;
+  }
+  $checker->runAudit();
+}
+
+/**
+ * Implements hook_mail().
+ */
+function security_advisory_alert_mail(string $key, array &$message, array $params): void {
+  if ($key !== 'vulnerabilities_alert') {
+    return;
+  }
+
+  $mail_from = \Drupal::config('security_advisory_alert.settings')->get('mail_from');
+  if ($mail_from) {
+    $message['headers']['From'] = $mail_from;
+    $message['headers']['Sender'] = $mail_from;
+  }
+  // Keeps the HTML with core's mail system too (see HtmlMail::format()).
+  $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
+
+  $email = \Drupal::service('security_advisory_alert.mail_builder')->build($params);
+  $message['subject'] = $email['subject'];
+  $message['body'] = [$email['body']];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function security_advisory_alert_theme(): array {
+  return [
+    'security_advisory_alert_email' => [
+      'variables' => [
+        'site_name' => '',
+        'site_url' => '',
+        'counts' => [],
+        'package_count' => 0,
+        'psas' => [],
+        'packages' => [],
+      ],
+    ],
+  ];
+}

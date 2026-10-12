@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Install/uninstall hooks for security_advisory_alert.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function security_advisory_alert_install(): void {
+  _security_advisory_alert_set_mail_interface();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function security_advisory_alert_uninstall(): void {
+  $config = \Drupal::configFactory()->getEditable('system.mail');
+  $interface = $config->get('interface') ?? [];
+  unset($interface['security_advisory_alert']);
+  $config->set('interface', $interface)->save();
+}
+
+/**
+ * Sets system.mail.interface.security_advisory_alert to the HTML plugin.
+ */
+function _security_advisory_alert_set_mail_interface(): void {
+  $config = \Drupal::configFactory()->getEditable('system.mail');
+  $interface = $config->get('interface') ?? [];
+  $interface['security_advisory_alert'] = 'security_advisory_alert_html';
+  $config->set('interface', $interface)->save();
+}

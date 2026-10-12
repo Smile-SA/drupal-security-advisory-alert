@@ -1,0 +1,15 @@
+security_advisory_alert.settings:
+  type: config_object
+  label: 'Security Advisory Alert settings'
+  mapping:
+    recipients:
+      type: string
+      label: 'Email recipients'
+    severities:
+      type: sequence
+      label: 'Severity levels to report'
+      sequence:
+        type: string
+    mail_from:
+      type: email
+      label: 'Sender email address'

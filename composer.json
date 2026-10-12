@@ -1,0 +1,14 @@
+{
+    "name": "drupal/security_advisory_alert",
+    "description": "Daily check of the installed Composer packages (read from vendor/composer/installed.json, not composer.lock) against OSV / drupal.org security advisories and Drupal PSAs, with an email alert. Works on single sites and multisites (one check and one email per codebase).",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "keywords": ["Drupal", "security", "advisories", "OSV", "composer audit"],
+    "require": {
+        "php": ">=8.1",
+        "drupal/core": "^10.3 || ^11"
+    },
+    "suggest": {
+        "drupal/ultimate_cron": "Runs the check at a fixed daily time (a job is provided); without it the check runs on the first cron at least 20 h after the previous one."
+    }
+}

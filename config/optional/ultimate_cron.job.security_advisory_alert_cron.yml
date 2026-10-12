@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - security_advisory_alert
+title: 'Security advisory check'
+id: security_advisory_alert_cron
+weight: 0
+module: security_advisory_alert
+callback: 'security_advisory_alert#cron'
+scheduler:
+  id: simple
+  configuration:
+    rules:
+      # Once a day. The "+@" offset is hashed from the job id, so every site
+      # of the multisite runs it at the same time.
+      - '0+@ 0 * * *'
+launcher:
+  id: serial
+logger:
+  id: database

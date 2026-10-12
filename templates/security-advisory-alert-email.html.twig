@@ -1,0 +1,115 @@
+{#
+/**
+ * @file
+ * HTML body of the security advisory alert email.
+ *
+ * Inline styles only: most mail clients ignore <style> blocks.
+ *
+ * Available variables:
+ * - site_name: The site name.
+ * - site_url: The site front page URL.
+ * - counts: Advisories found per severity, most severe first. Each item has
+ *   label, color and count.
+ * - package_count: Number of packages with advisories.
+ * - psas: Announced upcoming security releases. Each item has title, project
+ *   and url.
+ * - packages: Packages with advisories: those that triggered the alert first,
+ *   then by most severe advisory and number of advisories. Each item has:
+ *   - name, version: The package and its installed version.
+ *   - alert: Whether the package triggered the alert.
+ *   - vulns: The advisories, most severe first. Each item has severity (label,
+ *     color), id, aliases, description, url, upgrades (versions to upgrade
+ *     to) and fix_exists (whether a fix exists at all).
+ */
+#}
+{% macro badge(severity) %}
+  <span style="display:inline-block;padding:2px 8px;border-radius:3px;background:{{ severity.color }};color:#fff;font-size:11px;font-weight:bold;">{{ severity.label }}</span>
+{% endmacro %}
+{% import _self as email %}
+<div style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;background:#f4f4f4;">
+
+  <div style="background:#c0392b;padding:24px 30px;">
+    <h1 style="margin:0;color:#fff;font-size:20px;">&#128274; {{ 'Security Alert'|t }} &mdash; {{ site_name }}</h1>
+    <p style="margin:6px 0 0;color:#f5b7b1;font-size:13px;">{{ site_url }}</p>
+  </div>
+
+  <div style="background:#fff;padding:16px 30px;border-bottom:1px solid #ddd;">
+    <strong>{{ 'Found:'|t }}</strong>&nbsp;
+    {% for count in counts %}
+      {{ email.badge(count) }} <strong>{{ count.count }}</strong>&nbsp;&nbsp;
+    {% endfor %}
+    &nbsp;&mdash;&nbsp;<strong>{{ package_count }}</strong> {{ 'package(s) affected'|t }}
+  </div>
+
+  <div style="padding:20px 30px;">
+
+    {% if psas %}
+      <div style="background:#fff;border-radius:4px;margin-bottom:20px;border-left:4px solid #8e44ad;box-shadow:0 1px 3px rgba(0,0,0,.07);">
+        <div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;">
+          <strong style="font-size:15px;color:#8e44ad;">{{ 'Upcoming security release (PSA)'|t }}</strong>
+          &nbsp;&nbsp;<span style="color:#888;font-size:12px;">{{ 'be ready to update on the announced date'|t }}</span>
+        </div>
+        <ul style="margin:0;padding:12px 16px 12px 34px;font-size:13px;">
+          {% for psa in psas %}
+            <li style="margin:4px 0;"><a href="{{ psa.url }}" style="color:#3498db;text-decoration:none;">{{ psa.title }}</a> <span style="color:#888;">({{ psa.project }})</span></li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {% for package in packages %}
+      {% set border = package.alert ? '#c0392b' : '#3498db' %}
+      <div style="background:#fff;border-radius:4px;margin-bottom:20px;border-left:4px solid {{ border }};box-shadow:0 1px 3px rgba(0,0,0,.07);">
+        <div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;">
+          <strong style="font-size:15px;color:{{ border }};">{{ package.name }}</strong>
+          {% if package.alert %}
+            &nbsp;<span style="background:#c0392b;color:#fff;font-size:11px;padding:2px 7px;border-radius:3px;">{{ 'ALERT'|t }}</span>
+          {% endif %}
+          &nbsp;&nbsp;<span style="color:#888;font-size:12px;">{{ 'installed:'|t }} <code>{{ package.version }}</code></span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f8f9fa;">
+              <th style="padding:8px 12px;text-align:left;width:90px;">{{ 'Severity'|t }}</th>
+              <th style="padding:8px 12px;text-align:left;width:170px;">{{ 'ID / CVE'|t }}</th>
+              <th style="padding:8px 12px;text-align:left;">{{ 'Description'|t }}</th>
+              <th style="padding:8px 12px;text-align:left;width:160px;">{{ 'Fix'|t }}</th>
+              <th style="padding:8px 12px;text-align:left;width:60px;">{{ 'Details'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for vuln in package.vulns %}
+              <tr style="background:{{ loop.index is odd ? '#fff' : '#fafafa' }};">
+                <td style="padding:8px 12px;vertical-align:top;">{{ email.badge(vuln.severity) }}</td>
+                <td style="padding:8px 12px;vertical-align:top;font-family:monospace;font-size:12px;">
+                  {{ vuln.id }}
+                  {% for alias in vuln.aliases %}<br><span style="color:#888;">{{ alias }}</span>{% endfor %}
+                </td>
+                <td style="padding:8px 12px;vertical-align:top;color:#555;">{{ vuln.description }}</td>
+                <td style="padding:8px 12px;vertical-align:top;">
+                  {% if vuln.upgrades %}
+                    <span style="color:#27ae60;font-size:12px;font-weight:bold;">{{ 'Upgrade to:'|t }}</span>
+                    {% for upgrade in vuln.upgrades %}<br><code style="background:#eafaf1;padding:1px 4px;border-radius:3px;font-size:11px;">{{ upgrade }}</code>{% endfor %}
+                  {% elseif vuln.fix_exists %}
+                    <span style="color:#e67e22;font-size:11px;">{{ 'No fix for v@version'|t({'@version': package.version}) }}<br>{{ 'See advisory'|t }}</span>
+                  {% else %}
+                    <span style="color:#e67e22;font-size:11px;">{{ 'No fix available'|t }}<br>{{ 'See advisory'|t }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding:8px 12px;vertical-align:top;">
+                  <a href="{{ vuln.url }}" style="color:#3498db;text-decoration:none;">&#x1F517;&nbsp;OSV</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+
+  </div>
+
+  <div style="padding:16px 30px;text-align:center;color:#aaa;font-size:12px;">
+    {{ 'Generated by Security Advisory Alert'|t }} &mdash; <a href="https://osv.dev" style="color:#aaa;">osv.dev</a>
+  </div>
+
+</div>

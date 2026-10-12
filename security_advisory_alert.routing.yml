@@ -1,0 +1,7 @@
+security_advisory_alert.settings:
+  path: '/admin/config/system/security-advisory-alert'
+  defaults:
+    _form: '\Drupal\security_advisory_alert\Form\SettingsForm'
+    _title: 'Security Advisory Alert settings'
+  requirements:
+    _permission: 'administer security advisory alert'

@@ -1,0 +1,5 @@
+recipients: ''
+severities:
+  - critical
+  - high
+mail_from: ''

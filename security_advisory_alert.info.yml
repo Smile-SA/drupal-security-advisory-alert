@@ -1,0 +1,6 @@
+name: Security Advisory Alert
+description: 'Daily check of the installed Composer packages (read from vendor/composer/installed.json, not composer.lock) against OSV / drupal.org security advisories and Drupal PSAs; emails an alert. Works on single sites and multisites (one check and one email per codebase).'
+package: Security
+type: module
+core_version_requirement: ^10.3 || ^11
+configure: security_advisory_alert.settings
