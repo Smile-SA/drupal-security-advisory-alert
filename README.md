@@ -40,7 +40,7 @@ the configuration of the site that runs the check.
 | [OSV](https://osv.dev) | Published advisories for every installed package (`vendor/composer/installed.json`, so dev packages only if installed), incl. drupal.org SAs and GitHub advisories | `api.osv.dev` querybatch + details |
 | drupal.org Composer advisory API | Risk label of Drupal SAs (OSV has none) | `packages.drupal.org/8/security-advisories` |
 | Package repository | Latest stable version, to suggest an upgrade | packagist.org or packages.drupal.org, as recorded by Composer |
-| drupal.org PSA feed | Announced upcoming security releases for projects in the codebase | Core's `system.sa_fetcher` (`updates.drupal.org/psa.json`) |
+| drupal.org PSA feed | Upcoming security releases announced in the last 7 days | `www.drupal.org/security/psa/rss.xml` (`updates.drupal.org/psa.json` is stale since May 2026) |
 
 Severity (critical / high / medium / low / unknown) comes from, in order: the
 source database label (GitHub), the CVSS v3/v4 vector, the drupal.org SA risk

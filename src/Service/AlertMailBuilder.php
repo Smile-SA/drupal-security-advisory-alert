@@ -52,7 +52,7 @@ class AlertMailBuilder {
    *   - count: number of those advisories.
    *   - all_vulns: all annotated advisories, keyed by package.
    *   - installed: installed version keyed by package.
-   *   - psas: [title, url, project] of the applicable PSAs.
+   *   - psas: [title, url] of the recent PSAs.
    *
    * @return array
    *   'subject' (string) and 'body' (\Drupal\Component\Render\MarkupInterface).
@@ -108,7 +108,6 @@ class AlertMailBuilder {
       '#package_count' => count($allVulns),
       '#psas' => array_map(fn($psa) => [
         'title' => $psa['title'],
-        'project' => $psa['project'],
         'url' => $this->safeUrl($psa['url'] ?? '', 'https://www.drupal.org/security/psa'),
       ], $psas),
       '#packages' => $packages,

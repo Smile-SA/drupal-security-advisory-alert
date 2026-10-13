@@ -75,7 +75,7 @@ class AlertMailBuilderTest extends UnitTestCase {
         'drupal/webform' => [$high, $critical],
       ],
       'installed' => ['drupal/webform' => '6.3.0', 'drupal/core' => '11.0.0', 'symfony/x' => '2.0.0'],
-      'psas' => [['title' => 'PSA-1', 'url' => 'data:text/html,x', 'project' => 'webform']],
+      'psas' => [['title' => 'PSA-1', 'url' => 'data:text/html,x']],
     ]);
 
     $this->assertSame('[My site] SECURITY: 4 advisory/ies in 2 package(s) + 1 upcoming security release(s) announced', $email['subject']);

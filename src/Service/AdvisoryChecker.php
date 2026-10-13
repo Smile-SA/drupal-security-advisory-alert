@@ -9,7 +9,6 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\security_advisory_alert\AdvisoryAnalyzer;
 use Drupal\security_advisory_alert\InstalledPackages;
-use Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -41,8 +40,6 @@ class AdvisoryChecker {
    *   The language manager.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   The logger channel factory.
-   * @param \Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher $psaFetcher
-   *   Core's drupal.org security advisories (PSA) feed fetcher.
    * @param \Drupal\security_advisory_alert\Service\AdvisoryFetcher $fetcher
    *   The OSV / drupal.org / Packagist fetcher.
    * @param \Drupal\security_advisory_alert\Service\AuditStorage $storage
@@ -55,7 +52,6 @@ class AdvisoryChecker {
     protected MailManagerInterface $mailManager,
     protected LanguageManagerInterface $languageManager,
     LoggerChannelFactoryInterface $loggerFactory,
-    protected SecurityAdvisoriesFetcher $psaFetcher,
     protected AdvisoryFetcher $fetcher,
     protected AuditStorage $storage,
     protected ClassLoader $classLoader,
@@ -257,19 +253,17 @@ class AdvisoryChecker {
   }
 
   /**
-   * Returns drupal.org PSAs for projects present in the codebase.
+   * Returns the recent drupal.org PSAs, or none if the feed is unreachable.
    *
    * PSAs announce upcoming security releases: they have no affected versions
-   * yet, so OSV / composer audit can't see them. Core's fetcher reads
-   * https://updates.drupal.org/psa.json (stored for
-   * system.advisories:interval_hours) and keeps only projects in the codebase.
+   * yet, so OSV / composer audit can't see them.
    *
-   * @return array<int, array{title: string, url: string, project: string}>
-   *   The applicable PSAs.
+   * @return array<int, array{title: string, url: string}>
+   *   The recent PSAs.
    */
   protected function fetchPsas(): array {
     try {
-      $advisories = $this->psaFetcher->getSecurityAdvisories(TRUE, 10) ?? [];
+      return $this->fetcher->fetchPsas();
     }
     catch (\Exception $e) {
       $this->logger->warning('security advisory alert: could not fetch drupal.org PSA feed: @msg', [
@@ -277,17 +271,6 @@ class AdvisoryChecker {
       ]);
       return [];
     }
-    $psas = [];
-    foreach ($advisories as $advisory) {
-      if ($advisory->isPsa()) {
-        $psas[] = [
-          'title' => $advisory->getTitle(),
-          'url' => $advisory->getUrl(),
-          'project' => $advisory->getProject(),
-        ];
-      }
-    }
-    return $psas;
   }
 
   /**

@@ -173,6 +173,53 @@ class AdvisoryFetcher {
   }
 
   /**
+   * Fetches the drupal.org PSAs published in the last 7 days.
+   *
+   * Reads the RSS feed: updates.drupal.org/psa.json (core's sa_fetcher) has
+   * not been updated since May 2026 and misses every PSA since.
+   *
+   * @return array<int, array{title: string, url: string}>
+   *   The recent PSAs.
+   *
+   * @throws \GuzzleHttp\Exception\GuzzleException
+   */
+  public function fetchPsas(): array {
+    $client = $this->httpClientFactory->fromOptions(['timeout' => 10]);
+    $rss = (string) $client->get('https://www.drupal.org/security/psa/rss.xml')->getBody();
+    return static::parsePsaFeed($rss, time());
+  }
+
+  /**
+   * Extracts the PSAs published in the last 7 days from the RSS feed.
+   *
+   * PSAs come out a few days before the release they announce and the feed
+   * has no project field, so every recent PSA is returned, like psa.json did.
+   * ponytail: fixed 7-day window, make it a setting if someone needs another.
+   *
+   * @param string $rss
+   *   The RSS feed XML.
+   * @param int $now
+   *   The current timestamp.
+   *
+   * @return array<int, array{title: string, url: string}>
+   *   The recent PSAs.
+   */
+  public static function parsePsaFeed(string $rss, int $now): array {
+    $xml = @simplexml_load_string($rss);
+    if ($xml === FALSE) {
+      throw new \RuntimeException('invalid PSA RSS feed.');
+    }
+    $psas = [];
+    foreach ($xml->channel->item as $item) {
+      $published = strtotime((string) $item->pubDate);
+      if ($published && $published >= $now - 7 * 86400) {
+        $psas[] = ['title' => (string) $item->title, 'url' => (string) $item->link];
+      }
+    }
+    return $psas;
+  }
+
+  /**
    * Fetches full OSV vulnerability objects for a list of IDs.
    *
    * @param \GuzzleHttp\ClientInterface $client

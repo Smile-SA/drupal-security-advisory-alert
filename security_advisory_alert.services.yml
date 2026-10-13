@@ -6,7 +6,6 @@ services:
       - '@plugin.manager.mail'
       - '@language_manager'
       - '@logger.factory'
-      - '@system.sa_fetcher'
       - '@security_advisory_alert.fetcher'
       - '@security_advisory_alert.storage'
       - '@class_loader'
