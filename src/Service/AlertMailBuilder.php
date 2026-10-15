@@ -66,13 +66,11 @@ class AlertMailBuilder {
 
     $subject = [];
     if ($matching) {
-      $subject[] = $this->t('@count advisory/ies in @pkg package(s)', [
-        '@count' => $params['count'] ?? 0,
-        '@pkg' => count($matching),
-      ]);
+      $subject[] = $this->formatPlural($params['count'] ?? 0, '1 advisory', '@count advisories')
+        . ' ' . $this->formatPlural(count($matching), 'in 1 package', 'in @count packages');
     }
     if ($psas) {
-      $subject[] = $this->t('@n upcoming security release(s) announced', ['@n' => count($psas)]);
+      $subject[] = $this->formatPlural(count($psas), '1 upcoming security release announced', '@count upcoming security releases announced');
     }
 
     $counts = [];

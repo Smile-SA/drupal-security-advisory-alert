@@ -1,20 +1,23 @@
 services:
+  logger.channel.security_advisory_alert:
+    parent: logger.channel_base
+    arguments: ['security_advisory_alert']
   security_advisory_alert.checker:
     class: Drupal\security_advisory_alert\Service\AdvisoryChecker
     arguments:
       - '@config.factory'
       - '@plugin.manager.mail'
       - '@language_manager'
-      - '@logger.factory'
+      - '@logger.channel.security_advisory_alert'
       - '@security_advisory_alert.fetcher'
       - '@security_advisory_alert.storage'
       - '@class_loader'
   security_advisory_alert.fetcher:
     class: Drupal\security_advisory_alert\Service\AdvisoryFetcher
-    arguments: ['@http_client_factory', '@logger.factory']
+    arguments: ['@http_client_factory', '@logger.channel.security_advisory_alert']
   security_advisory_alert.storage:
     class: Drupal\security_advisory_alert\Service\AuditStorage
-    arguments: ['@logger.factory', '%app.root%']
+    arguments: ['@logger.channel.security_advisory_alert', '%app.root%']
   security_advisory_alert.mail_builder:
     class: Drupal\security_advisory_alert\Service\AlertMailBuilder
     arguments: ['@config.factory', '@renderer']

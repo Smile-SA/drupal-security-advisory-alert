@@ -37,7 +37,7 @@
     {% for count in counts %}
       {{ email.badge(count) }} <strong>{{ count.count }}</strong>&nbsp;&nbsp;
     {% endfor %}
-    &nbsp;&mdash;&nbsp;<strong>{{ package_count }}</strong> {{ 'package(s) affected'|t }}
+    &nbsp;&mdash;&nbsp;{% trans %}<strong>{{ package_count }}</strong> package affected{% plural package_count %}<strong>{{ package_count }}</strong> packages affected{% endtrans %}
   </div>
 
   <div style="padding:20px 30px;">

@@ -5,7 +5,6 @@ namespace Drupal\security_advisory_alert\Service;
 use Composer\Autoload\ClassLoader;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Mail\MailManagerInterface;
 use Drupal\security_advisory_alert\AdvisoryAnalyzer;
 use Drupal\security_advisory_alert\InstalledPackages;
@@ -18,11 +17,6 @@ use Psr\Log\LoggerInterface;
  * drupal.org) and drupal.org PSAs, once for all the sites of a codebase.
  */
 class AdvisoryChecker {
-
-  /**
-   * The module's logger channel.
-   */
-  protected LoggerInterface $logger;
 
   /**
    * The OSV data interpreter.
@@ -38,8 +32,8 @@ class AdvisoryChecker {
    *   The mail manager.
    * @param \Drupal\Core\Language\LanguageManagerInterface $languageManager
    *   The language manager.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   The logger channel factory.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The module's logger channel.
    * @param \Drupal\security_advisory_alert\Service\AdvisoryFetcher $fetcher
    *   The OSV / drupal.org / Packagist fetcher.
    * @param \Drupal\security_advisory_alert\Service\AuditStorage $storage
@@ -51,12 +45,11 @@ class AdvisoryChecker {
     protected ConfigFactoryInterface $configFactory,
     protected MailManagerInterface $mailManager,
     protected LanguageManagerInterface $languageManager,
-    LoggerChannelFactoryInterface $loggerFactory,
+    protected LoggerInterface $logger,
     protected AdvisoryFetcher $fetcher,
     protected AuditStorage $storage,
     protected ClassLoader $classLoader,
   ) {
-    $this->logger = $loggerFactory->get('security_advisory_alert');
     $this->analyzer = new AdvisoryAnalyzer();
   }
 
@@ -167,15 +160,15 @@ class AdvisoryChecker {
     ];
 
     if (!$matching && !$psas) {
-      $this->logger->info('security advisory alert: no vulnerabilities at configured severity levels and no PSA.');
+      $this->logger->info('no vulnerabilities at configured severity levels and no PSA.');
       return ['status' => 'clean'] + $result;
     }
     if (!empty($cached['email_sent'])) {
-      $this->logger->info('security advisory alert: skipped, email already sent for this install in the current cycle.');
+      $this->logger->info('skipped, email already sent for this install in the current cycle.');
       return ['status' => 'already_sent'] + $result;
     }
 
-    $this->logger->warning('security advisory alert: found @count advisory/ies in @pkg package(s) and @psa PSA(s).', [
+    $this->logger->warning('found @count advisory/ies in @pkg package(s) and @psa PSA(s).', [
       '@count' => $alertCount,
       '@pkg' => count($matching),
       '@psa' => count($psas),
@@ -266,7 +259,7 @@ class AdvisoryChecker {
       return $this->fetcher->fetchPsas();
     }
     catch (\Exception $e) {
-      $this->logger->warning('security advisory alert: could not fetch drupal.org PSA feed: @msg', [
+      $this->logger->warning('could not fetch drupal.org PSA feed: @msg', [
         '@msg' => $e->getMessage(),
       ]);
       return [];
@@ -287,7 +280,7 @@ class AdvisoryChecker {
   protected function sendAlert(array $params, string $recipients): bool {
     $recipients = array_filter(array_map('trim', preg_split('/[\r\n,]+/', $recipients)));
     if (!$recipients) {
-      $this->logger->warning('security advisory alert: vulnerabilities found but no recipients configured.');
+      $this->logger->warning('vulnerabilities found but no recipients configured.');
       return FALSE;
     }
 
@@ -296,7 +289,7 @@ class AdvisoryChecker {
     foreach ($recipients as $email) {
       $result = $this->mailManager->mail('security_advisory_alert', 'vulnerabilities_alert', $email, $langcode, $params);
       if (!$result['result']) {
-        $this->logger->error('security advisory alert: failed to send alert to @email.', [
+        $this->logger->error('failed to send alert to @email.', [
           '@email' => $email,
         ]);
       }
@@ -315,7 +308,7 @@ class AdvisoryChecker {
    *   The error result.
    */
   protected function error(string $message): array {
-    $this->logger->error('security advisory alert: @msg', ['@msg' => $message]);
+    $this->logger->error('@msg', ['@msg' => $message]);
     return ['status' => 'error', 'error' => $message];
   }
 

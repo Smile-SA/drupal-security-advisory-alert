@@ -5,6 +5,7 @@ namespace Drupal\security_advisory_alert\Form;
 use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Form\ConfigTarget;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\security_advisory_alert\Service\AdvisoryChecker;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -58,8 +59,6 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $config = $this->config('security_advisory_alert.settings');
-
     $last = $this->checker->getLastResult();
     $form['status'] = [
       '#type' => 'item',
@@ -77,7 +76,7 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Recipients'),
       '#description' => $this->t('Email addresses to notify. One per line, or comma-separated.'),
-      '#default_value' => $config->get('recipients'),
+      '#config_target' => 'security_advisory_alert.settings:recipients',
       '#rows' => 5,
       '#required' => TRUE,
     ];
@@ -92,14 +91,19 @@ class SettingsForm extends ConfigFormBase {
         'medium' => $this->t('Medium'),
         'low' => $this->t('Low'),
       ],
-      '#default_value' => $config->get('severities') ?: ['critical', 'high'],
+      '#config_target' => new ConfigTarget(
+        'security_advisory_alert.settings',
+        'severities',
+        fromConfig: fn(?array $severities) => $severities ?: ['critical', 'high'],
+        toConfig: fn(array $checked) => array_keys(array_filter($checked)),
+      ),
     ];
 
     $form['mail_from'] = [
       '#type' => 'email',
       '#title' => $this->t('Sender address'),
       '#description' => $this->t('From address for alert emails. Leave empty to use the site default.'),
-      '#default_value' => $config->get('mail_from'),
+      '#config_target' => 'security_advisory_alert.settings:mail_from',
     ];
 
     $form['run_now'] = [
@@ -128,21 +132,6 @@ class SettingsForm extends ConfigFormBase {
       ]));
     }
     parent::validateForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $severities = array_keys(array_filter($form_state->getValue('severities')));
-
-    $this->config('security_advisory_alert.settings')
-      ->set('recipients', $form_state->getValue('recipients'))
-      ->set('severities', $severities)
-      ->set('mail_from', $form_state->getValue('mail_from'))
-      ->save();
-
-    parent::submitForm($form, $form_state);
   }
 
   /**
@@ -178,8 +167,7 @@ class SettingsForm extends ConfigFormBase {
 
     $alert = [];
     if ($result['alert_count']) {
-      $alert[] = $this->t('@count advisory/ies at alert level in @packages', [
-        '@count' => $result['alert_count'],
+      $alert[] = $this->formatPlural($result['alert_count'], '1 advisory at alert level in @packages', '@count advisories at alert level in @packages', [
         '@packages' => implode(', ', $result['alert_packages']),
       ]);
     }

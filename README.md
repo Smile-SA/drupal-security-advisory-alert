@@ -159,8 +159,10 @@ HTML, rendered with the `security_advisory_alert_email` theme hook
 (`templates/security-advisory-alert-email.html.twig`), which a theme can
 override. Links from external feeds are only kept if they are http(s).
 
-The module registers a mail plugin that keeps the HTML with core's mail
-system; with Symfony Mailer it works as is.
+When the site's default mail system is core's `php_mail`, the module routes
+its emails through a `php_mail` subclass that keeps the HTML (core's one
+converts the body to plain text). Any other mail system (SMTP, Symfony Mailer)
+is left in charge and must send `Content-Type: text/html` as is.
 
 ## Testing with Drush
 

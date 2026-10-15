@@ -9,13 +9,26 @@
  * Implements hook_install().
  */
 function security_advisory_alert_install(): void {
-  _security_advisory_alert_set_mail_interface();
+  // Only when the site sends with core's php_mail: HtmlMail uses the same
+  // transport and just keeps the HTML. Any other mail system (SMTP, Symfony
+  // Mailer) is left in charge, so alerts are not routed around it.
+  $config = \Drupal::configFactory()->getEditable('system.mail');
+  if (($config->get('interface.default') ?? 'php_mail') === 'php_mail') {
+    $config->set('interface.security_advisory_alert', 'security_advisory_alert_html')->save();
+  }
 }
 
 /**
  * Implements hook_uninstall().
  */
 function security_advisory_alert_uninstall(): void {
+  _security_advisory_alert_unset_mail_interface();
+}
+
+/**
+ * Removes system.mail.interface.security_advisory_alert.
+ */
+function _security_advisory_alert_unset_mail_interface(): void {
   $config = \Drupal::configFactory()->getEditable('system.mail');
   $interface = $config->get('interface') ?? [];
   unset($interface['security_advisory_alert']);
@@ -23,11 +36,10 @@ function security_advisory_alert_uninstall(): void {
 }
 
 /**
- * Sets system.mail.interface.security_advisory_alert to the HTML plugin.
+ * Stop bypassing the site's mail system when it is not php_mail.
  */
-function _security_advisory_alert_set_mail_interface(): void {
-  $config = \Drupal::configFactory()->getEditable('system.mail');
-  $interface = $config->get('interface') ?? [];
-  $interface['security_advisory_alert'] = 'security_advisory_alert_html';
-  $config->set('interface', $interface)->save();
+function security_advisory_alert_update_10001(): void {
+  if ((\Drupal::config('system.mail')->get('interface.default') ?? 'php_mail') !== 'php_mail') {
+    _security_advisory_alert_unset_mail_interface();
+  }
 }

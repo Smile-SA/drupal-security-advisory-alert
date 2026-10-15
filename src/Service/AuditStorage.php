@@ -3,7 +3,6 @@
 namespace Drupal\security_advisory_alert\Service;
 
 use Drupal\Component\FileSecurity\FileSecurity;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -30,24 +29,17 @@ class AuditStorage {
   protected const CACHE_TTL = 43200;
 
   /**
-   * The module's logger channel.
-   */
-  protected LoggerInterface $logger;
-
-  /**
    * Constructs an AuditStorage.
    *
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   The logger channel factory.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The module's logger channel.
    * @param string $root
    *   The Drupal root, identifies the project.
    */
   public function __construct(
-    LoggerChannelFactoryInterface $loggerFactory,
+    protected LoggerInterface $logger,
     protected string $root,
-  ) {
-    $this->logger = $loggerFactory->get('security_advisory_alert');
-  }
+  ) {}
 
   /**
    * Acquires the exclusive cross-site lock, waiting for it if needed.
@@ -59,7 +51,7 @@ class AuditStorage {
     $path = $this->path('lock');
     $lock = $path ? @fopen($path, 'c') : FALSE;
     if (!$lock || !flock($lock, LOCK_EX)) {
-      $this->logger->error('security advisory alert: cannot acquire the lock.');
+      $this->logger->error('cannot acquire the lock.');
       return NULL;
     }
     @chmod($path, 0660);
@@ -108,7 +100,7 @@ class AuditStorage {
   public function setCache(string $lockHash, array $vulns, bool $emailSent): void {
     $data = json_encode(['vulns' => $vulns, 'email_sent' => $emailSent]);
     if (!$this->write($lockHash . '.json', $data)) {
-      $this->logger->warning('security advisory alert: cannot write the cache, other sites may send the alert again.');
+      $this->logger->warning('cannot write the cache, other sites may send the alert again.');
     }
   }
 
@@ -190,7 +182,7 @@ class AuditStorage {
       || fileowner($dir) === posix_geteuid()
       || filegroup($dir) === posix_getegid();
     if (is_link($dir) || !is_dir($dir) || !$trusted || !is_writable($dir)) {
-      $this->logger->error('security advisory alert: temporary directory @dir is not safe (symlink, foreign owner/group) or not writable.', [
+      $this->logger->error('temporary directory @dir is not safe (symlink, foreign owner/group) or not writable.', [
         '@dir' => $dir,
       ]);
       return NULL;

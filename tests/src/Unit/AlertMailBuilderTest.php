@@ -78,7 +78,7 @@ class AlertMailBuilderTest extends UnitTestCase {
       'psas' => [['title' => 'PSA-1', 'url' => 'data:text/html,x']],
     ]);
 
-    $this->assertSame('[My site] SECURITY: 4 advisory/ies in 2 package(s) + 1 upcoming security release(s) announced', $email['subject']);
+    $this->assertSame('[My site] SECURITY: 4 advisories in 2 packages + 1 upcoming security release announced', $email['subject']);
     $this->assertSame('<p>body</p>', (string) $email['body']);
 
     $this->assertSame('security_advisory_alert_email', $this->build['#theme']);

@@ -3,7 +3,6 @@
 namespace Drupal\security_advisory_alert\Service;
 
 use Drupal\Core\Http\ClientFactory;
-use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 
@@ -17,24 +16,17 @@ use Psr\Log\LoggerInterface;
 class AdvisoryFetcher {
 
   /**
-   * The module's logger channel.
-   */
-  protected LoggerInterface $logger;
-
-  /**
    * Constructs an AdvisoryFetcher.
    *
    * @param \Drupal\Core\Http\ClientFactory $httpClientFactory
    *   The HTTP client factory.
-   * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
-   *   The logger channel factory.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The module's logger channel.
    */
   public function __construct(
     protected ClientFactory $httpClientFactory,
-    LoggerChannelFactoryInterface $loggerFactory,
-  ) {
-    $this->logger = $loggerFactory->get('security_advisory_alert');
-  }
+    protected LoggerInterface $logger,
+  ) {}
 
   /**
    * Queries OSV for the installed packages and returns full vulnerabilities.
@@ -190,11 +182,14 @@ class AdvisoryFetcher {
   }
 
   /**
-   * Extracts the PSAs published in the last 7 days from the RSS feed.
+   * Extracts the current PSAs from the RSS feed.
    *
    * PSAs come out a few days before the release they announce and the feed
-   * has no project field, so every recent PSA is returned, like psa.json did.
-   * ponytail: fixed 7-day window, make it a setting if someone needs another.
+   * has no project field, so every current PSA is returned, like psa.json did.
+   * A PSA announcing a release date ("... release on October 14, 2026") is
+   * current until the end of that day (UTC): the advisory is then published
+   * and reported by OSV. Other PSAs are current for 7 days.
+   * ponytail: date read from the title, fixed 7-day window otherwise.
    *
    * @param string $rss
    *   The RSS feed XML.
@@ -211,9 +206,14 @@ class AdvisoryFetcher {
     }
     $psas = [];
     foreach ($xml->channel->item as $item) {
+      $title = (string) $item->title;
+      $release = preg_match('/\bon (\w+ \d{1,2}, \d{4})\b/', $title, $m) ? strtotime($m[1] . ' UTC') : FALSE;
       $published = strtotime((string) $item->pubDate);
-      if ($published && $published >= $now - 7 * 86400) {
-        $psas[] = ['title' => (string) $item->title, 'url' => (string) $item->link];
+      $current = $published && $published <= $now && ($release
+        ? $now < $release + 86400
+        : $published >= $now - 7 * 86400);
+      if ($current) {
+        $psas[] = ['title' => $title, 'url' => (string) $item->link];
       }
     }
     return $psas;
@@ -238,7 +238,7 @@ class AdvisoryFetcher {
         $details[$id] = json_decode((string) $response->getBody(), TRUE);
       }
       catch (\Exception $e) {
-        $this->logger->warning('security advisory alert: could not fetch OSV vuln @id: @msg', [
+        $this->logger->warning('could not fetch OSV vuln @id: @msg', [
           '@id' => $id,
           '@msg' => $e->getMessage(),
         ]);
@@ -266,7 +266,7 @@ class AdvisoryFetcher {
       $data = json_decode((string) $response->getBody(), TRUE);
     }
     catch (\Exception $e) {
-      $this->logger->warning('security advisory alert: could not fetch drupal.org advisories: @msg', [
+      $this->logger->warning('could not fetch drupal.org advisories: @msg', [
         '@msg' => $e->getMessage(),
       ]);
       return [];

@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\Group;
 class AdvisoryFetcherTest extends UnitTestCase {
 
   /**
-   * Only PSAs published in the last 7 days are returned.
+   * A PSA is current until its release day ends, or for 7 days without one.
    */
   public function testParsePsaFeed(): void {
     $rss = <<<XML
@@ -34,16 +34,20 @@ class AdvisoryFetcherTest extends UnitTestCase {
           <link>https://www.drupal.org/psa-2026-09-21</link>
           <pubDate>Mon, 21 Sep 2026 09:56:09 +0000</pubDate>
         </item>
+        <item>
+          <title>Security advisory coverage removed - QA Accounts - PSA-2026-07-22</title>
+          <link>https://www.drupal.org/psa-2026-07-22</link>
+          <pubDate>Wed, 22 Jul 2026 17:59:58 +0000</pubDate>
+        </item>
       </channel></rss>
       XML;
-    $now = strtotime('2026-10-13 12:00:00 UTC');
+    $urls = fn(string $now) => array_column(AdvisoryFetcher::parsePsaFeed($rss, strtotime($now . ' UTC')), 'url');
 
-    $this->assertSame([
-      [
-        'title' => 'Upcoming critical Drupal core release on October 14, 2026 - PSA-2026-10-12',
-        'url' => 'https://www.drupal.org/psa-2026-10-12',
-      ],
-    ], AdvisoryFetcher::parsePsaFeed($rss, $now));
+    $this->assertSame(['https://www.drupal.org/psa-2026-10-12'], $urls('2026-10-13 12:00:00'));
+    $this->assertSame(['https://www.drupal.org/psa-2026-10-12'], $urls('2026-10-14 23:59:59'), 'Current during the release day.');
+    $this->assertSame([], $urls('2026-10-15 00:00:00'), 'Obsolete once the release day is over.');
+    $this->assertSame(['https://www.drupal.org/psa-2026-07-22'], $urls('2026-07-29 17:00:00'), 'No release date: 7 days.');
+    $this->assertSame([], $urls('2026-07-29 18:00:00'));
   }
 
   /**

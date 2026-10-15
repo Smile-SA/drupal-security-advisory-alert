@@ -1,5 +1,5 @@
 {
-    "name": "drupal/security_advisory_alert",
+    "name": "smile/security_advisory_alert",
     "description": "Daily check of the installed Composer packages (read from vendor/composer/installed.json, not composer.lock) against OSV / drupal.org security advisories and Drupal PSAs, with an email alert. Works on single sites and multisites (one check and one email per codebase).",
     "type": "drupal-module",
     "license": "GPL-2.0-or-later",
